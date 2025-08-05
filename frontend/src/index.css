@@ -29,3 +29,31 @@ html {
 .swiper-button-next::after {
   font-size: 20px; /* Smaller default arrow icons */
 }
+
+
+
+
+
+.shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%);
+  transform: skewX(-20deg);
+  animation: shine-anim 2s infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes shine-anim {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+
