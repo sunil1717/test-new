@@ -99,6 +99,7 @@ const RecommendedProducts = ({ tyres }) => {
             const tyreKey = getTyreKey(tyre);
             const isInCart = cart.some((item) => getTyreKey(item.tyre) === tyreKey);
             const cartLimitReached = cart.length >= 5;
+            const isOutofstock =Number(tyre["In Stock"]) === 0;
 
             return (
               <motion.div
@@ -108,8 +109,17 @@ const RecommendedProducts = ({ tyres }) => {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.2 }}
-                className="bg-gray-50 rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-lg transition-transform duration-300 hover:-translate-y-1.5 hover:scale-[1.01] flex flex-col items-center"
+                className=" relative bg-gray-50 rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-lg transition-transform duration-300 hover:-translate-y-1.5 hover:scale-[1.01] flex flex-col items-center"
               >
+
+                {isOutofstock && (
+                  <div className="absolute top-2 right-2">
+                    <div className="relative overflow-hidden rounded bg-red-600 text-white text-xs font-semibold px-2 py-1 shadow">
+                      Out of Stock
+                      <span className="shine" />
+                    </div>
+                  </div>
+                )}
                 <img
                   src={tyre.image_url || '/assets/tyre.png'}
                   alt={`${tyre.brand} tyre`}
@@ -124,26 +134,26 @@ const RecommendedProducts = ({ tyres }) => {
                 <p className="text-center font-semibold text-red-600 mt-2 text-lg">
                   ${tyre["Price Incl GST"] || 'N/A'}
                 </p>
-                
-                 <div className="flex justify-center">
-                <button
-                  onClick={() => {
-                    if (!user) {
-                      navigate('/login/user');
-                    } else if (!isInCart && !cartLimitReached) {
-                      handleAddToCart(tyre);
 
-                    }
-                  }}
-                  disabled={isInCart || cartLimitReached}
-                  className={`mt-3 px-4 py-1  text-sm rounded font-medium transition text-white ${isInCart
-                    ? 'bg-red-400 cursor-not-allowed'
-                    : 'bg-red-600 hover:bg-red-700'
-                    }`}
-                >
-                  {isInCart || addedTyreKey === tyreKey
-                    ? 'Added' : 'Add to Cart'}
-                </button>
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => {
+                      if (!user) {
+                        navigate('/login/user');
+                      } else if (!isInCart && !cartLimitReached) {
+                        handleAddToCart(tyre);
+
+                      }
+                    }}
+                    disabled={isInCart || cartLimitReached || isOutofstock}
+                    className={`mt-3 px-4 py-1  text-sm rounded font-medium transition text-white ${isInCart || isOutofstock
+                      ? 'bg-red-400 cursor-not-allowed'
+                      : 'bg-red-600 hover:bg-red-700'
+                      }`}
+                  >
+                    {isInCart || addedTyreKey === tyreKey
+                      ? 'Added' :isOutofstock ? "Out Of Stock " : 'Add to Cart'}
+                  </button>
                 </div>
               </motion.div>
             );

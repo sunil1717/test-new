@@ -12,7 +12,7 @@ export const useShopStore = create((set, get) => ({
   loading: false,
   error: null,
 
-  // ✅ Fetch all tyres
+  //  Fetch all tyres
   fetchTyres: async () => {
     try {
       set({ loading: true, error: null });
@@ -25,19 +25,23 @@ export const useShopStore = create((set, get) => ({
     }
   },
 
-  // ✅ Check service area by pincode
-  checkServiceArea: async (pincode) => {
-    try {
-      const res = await axios.post(`${BASE_URL}/service/check`, { postcode: pincode });
-      set({ serviceable: res.data.isServiceable });
-      return res.data.isServiceable;
-    } catch (err) {
-      set({ error: 'Failed to check service area' });
-      return false;
-    }
-  },
+  //  Check service area by postcode and suburb
+  checkServiceArea: async (postcode, suburb) => {
+  try {
+    const res = await axios.post(`${BASE_URL}/service/check`, {
+      postcode,
+      suburb
+    });
+    set({ serviceable: res.data.isServiceable });
+    return res.data.isServiceable;
+  } catch (err) {
+    set({ error: 'Failed to check service area' });
+    return false;
+  }
+},
 
-  // ✅ Fetch user cart
+
+  //  Fetch user cart
   fetchCart: async () => {
     const phone = useAuthStore.getState().user?.phone;
     if (!phone) return;
@@ -50,7 +54,7 @@ export const useShopStore = create((set, get) => ({
     }
   },
 
-  // ✅ Add item to cart
+  //  Add item to cart
   addToCart: async (tyre, quantity = 1) => {
   const phone = useAuthStore.getState().user?.phone;
   if (!phone) {
@@ -67,7 +71,7 @@ export const useShopStore = create((set, get) => ({
   }
 },
 
-  // ✅ Update cart item quantity
+  //  Update cart item quantity
  updateCartItem: async (itemId, quantity) => {
   const phone = useAuthStore.getState().user?.phone;
   if (!phone) return;
@@ -81,7 +85,7 @@ export const useShopStore = create((set, get) => ({
 },
 
 
-  // ✅ Remove item from cart
+  //  Remove item from cart
   removeFromCart: async (itemId) => {
   const phone = useAuthStore.getState().user?.phone;
   if (!phone) return;
@@ -97,7 +101,7 @@ export const useShopStore = create((set, get) => ({
 },
 
 
-  // ✅ Clear entire cart
+  //  Clear entire cart
   clearCart: async () => {
     const phone = useAuthStore.getState().user?.phone;
     if (!phone) return;

@@ -119,36 +119,44 @@ export const useAdminStore = create(
 
 
       //  SERVICE AREA FUNCTIONS
-      fetchServiceAreas: async () => {
-        try {
-          const res = await axios.get('/api/service', getAuthHeader());
-          set({ serviceAreas: Array.isArray(res.data) ? res.data : [] });
-        } catch (err) {
-          console.error('Failed to fetch service areas:', err);
-          set({ serviceAreas: [] });
-        }
-      },
+     // SERVICE AREA FUNCTIONS
+fetchServiceAreas: async () => {
+  try {
+    const res = await axios.get('/api/service', getAuthHeader());
+    const formatted = Array.isArray(res.data)
+      ? res.data.map(item => {
+          const [postcode, suburb] = item.split(',');
+          return { postcode, suburb };
+        })
+      : [];
+    set({ serviceAreas: formatted });
+  } catch (err) {
+    console.error('Failed to fetch service areas:', err);
+    set({ serviceAreas: [] });
+  }
+},
 
-      addServiceArea: async (postcode) => {
-        try {
-          await axios.post('/api/service/add', { postcode }, getAuthHeader());
-          await get().fetchServiceAreas();
-        } catch (err) {
-          console.error('Failed to add service area:', err);
-        }
-      },
+addServiceArea: async (postcode, suburb) => {
+  try {
+    await axios.post('/api/service/add', { postcode, suburb }, getAuthHeader());
+    await get().fetchServiceAreas();
+  } catch (err) {
+    console.error('Failed to add service area:', err);
+  }
+},
 
-      removeServiceArea: async (postcode) => {
-        try {
-          await axios.post('/api/service/delete', { postcode }, getAuthHeader());
-          await get().fetchServiceAreas();
-        } catch (err) {
-          console.error('Failed to remove service area:', err);
-        }
-      },
+removeServiceArea: async (postcode, suburb) => {
+  try {
+    await axios.post('/api/service/delete', { postcode, suburb }, getAuthHeader());
+    await get().fetchServiceAreas();
+  } catch (err) {
+    console.error('Failed to remove service area:', err);
+  }
+},
 
 
-      // ✅ BOOKINGS
+
+      //  BOOKINGS
       fetchBookings: async () => {
         try {
           const res = await axios.get('/api/bookings/all', getAuthHeader());

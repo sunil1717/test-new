@@ -41,6 +41,7 @@ export default function AdminDashboard() {
 
   const [tab, setTab] = useState('tyres');
   const [pincode, setPincode] = useState('');
+  const [suburb, setSuburb] = useState('');
   const [imagePreview, setImagePreview] = useState(null);
 
   const [newTyre, setNewTyre] = useState({
@@ -62,6 +63,10 @@ export default function AdminDashboard() {
 
   const [filterBrand, setFilterBrand] = useState("");
   const [filterModel, setFilterModel] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [stockValue, setstockValue] = useState("")
 
 
 
@@ -110,9 +115,11 @@ export default function AdminDashboard() {
     if (unloading) formData.append("UNLOADING IN 24 HRS", unloading);
     formData.append("image", image);
 
+    setLoading(true);
+
     try {
       await addTyre(formData);
-      alert("tyre Added successfully")
+      setSuccessMessage("Tyre added successfully!");
 
       setNewTyre({
         Brand: '',
@@ -132,18 +139,55 @@ export default function AdminDashboard() {
       setImagePreview(null);
     } catch (err) {
       console.error("Failed to add tyre:", err);
+      alert("Something went wrong!");
+    }
+    finally {
+      setLoading(false);
     }
   };
 
 
 
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this tyre?")) {
-      deleteTyre(id); // this should be from your adminStore
+      setLoading(true);
+      try {
+        await deleteTyre(id);
+        setSuccessMessage("Tyre deleted successfully!");
+      } catch (err) {
+        alert("Delete failed.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
+  const handleImageupdate = async (id, file) => {
+
+    setLoading(true);
+    try {
+      await updateTyreImage(id, file);
+      setSuccessMessage("Image updated successfully!");
+    } catch (err) {
+      alert("Image update failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleStockupdate = async (id, stockValue) => {
+
+    setLoading(true);
+    try {
+      await updateTyreStock(id, stockValue);
+      setSuccessMessage("Stock updated successfully!");
+    } catch (err) {
+      alert("Stock update failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
 
 
@@ -151,19 +195,23 @@ export default function AdminDashboard() {
 
 
 
-  const handleAddPincode = async () => {
-    if (!pincode) return;
-    await addServiceArea(pincode);
-    setPincode('');
-  };
+
+ const handleAddServiceArea = () => {
+  if (!pincode || !suburb) return;
+  addServiceArea(pincode, suburb);
+  setPincode('');
+  setSuburb('');
+};
 
 
 
 
 
-  const handleRemoveServiceArea = async (code) => {
-    await removeServiceArea(code);
-  };
+
+const handleRemoveServiceArea = (postcode, suburb) => {
+  removeServiceArea(postcode, suburb);
+};
+
 
   const handleDeleteBooking = async (id) => {
     if (!window.confirm('Delete this booking?')) return;
@@ -195,6 +243,8 @@ export default function AdminDashboard() {
     if (!window.confirm('Delete this blog?')) return;
     await deleteBlog(id);
   };
+
+
 
 
   return (
@@ -234,96 +284,23 @@ export default function AdminDashboard() {
 
       {tab === 'tyres' && (
         <div className="space-y-6">
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <input
-              type="text"
-              placeholder="Filter by Brand"
-              value={filterBrand}
-              onChange={(e) => setFilterBrand(e.target.value.toLowerCase())}
-              className="border px-3 py-2 rounded text-sm w-full md:w-60"
-            />
-            <input
-              type="text"
-              placeholder="Filter by Model"
-              value={filterModel}
-              onChange={(e) => setFilterModel(e.target.value.toLowerCase())}
-              className="border px-3 py-2 rounded text-sm w-full md:w-60"
-            />
-          </div>
+          {/* Loading Overlay with Blur Effect */}
+          {loading && (
+            <div className="fixed inset-0 backdrop-blur-sm bg-white/10 flex items-center justify-center z-50">
+              <div className="bg-white px-6 py-4 rounded shadow text-lg font-semibold text-gray-700">
+                Processing...
+              </div>
+            </div>
+          )}
 
-          {/* Tyre Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {tyres
-              .filter((tyre) =>
-                tyre.Brand?.toLowerCase().includes(filterBrand || '') &&
-                tyre.Model?.toLowerCase().includes(filterModel || '')
-              )
-              .map((tyre) => (
-                <div key={tyre._id} className="border rounded-lg p-4 bg-white shadow-md space-y-2">
-                  <img
-                    src={tyre.image_url}
-                    alt={`${tyre.Brand} ${tyre.Model}`}
-                    className="w-full h-32 object-contain mb-2"
-                  />
-                  <div className="text-sm">
-                    <p><strong>Brand:</strong> {tyre.Brand}</p>
-                    <p><strong>Model:</strong> {tyre.Model}</p>
-                    <p><strong>Size:</strong> {tyre.SIZE}</p>
-                    <p><strong>Load/Speed:</strong> {tyre["LOAD/SPEED RATING"]}</p>
-                    <p><strong>Type:</strong> {tyre.Type}</p>
-                    <p><strong>Marking:</strong> {tyre.Marking || 'N/A'}</p>
-                    <p><strong>RunFlat:</strong> {tyre.RunFlat || 'N/A'}</p>
-                    <p><strong>Price:</strong> ${tyre["Price Incl GST"]}</p>
-                    <p><strong>In Stock:</strong> {tyre["In Stock"]}</p>
-                    <p><strong>Unloading in 24 Hrs:</strong> {tyre["UNLOADING IN 24 HRS"]}</p>
-                  </div>
+          {successMessage && (
+            <div className="fixed top-5 right-5 bg-green-600 text-white px-4 py-2 rounded shadow z-50 flex items-center gap-2 transition-opacity duration-300">
+              <span>{successMessage}</span>
+              <button onClick={() => setSuccessMessage('')} className="font-bold text-lg leading-none">×</button>
+            </div>
+          )}
 
-                  {/* Action Buttons */}
-                  <div className="space-y-2">
-                    {/* Delete */}
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => handleDelete(tyre._id)}
-                        className="text-red-600 hover:text-red-800 p-2"
-                        title="Delete Tyre"
-                      >
-                        <FaTrash size={16} />
-                      </button>
-                    </div>
-
-                    {/* Image Upload */}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file) updateTyreImage(tyre._id, file);
-                      }}
-                      className="block w-full text-sm text-gray-700"
-                    />
-
-                    {/* Stock Update */}
-                    <div className="flex gap-2 items-center">
-                      <input
-                        type="text"
-                        placeholder="Stock"
-                        defaultValue={tyre["In Stock"]}
-                        onBlur={(e) => {
-                          const stockValue = e.target.value.trim();
-                          if (stockValue !== "" && stockValue !== tyre["In Stock"]) {
-                            updateTyreStock(tyre._id, stockValue);
-                          }
-                        }}
-                        className="w-full border px-2 py-1 rounded text-sm"
-                      />
-                    </div>
-
-                  </div>
-                </div>
-              ))}
-          </div>
-
+          {/*Add new tyre  */}
           <div className="bg-white rounded-xl shadow-md p-6 max-w-5xl mx-auto">
             <h2 className="text-2xl font-semibold mb-6 text-gray-800">Add New Tyre</h2>
 
@@ -517,6 +494,111 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <h3>Filter Tyre :</h3>
+            <input
+              type="text"
+              placeholder="Filter by Brand"
+              value={filterBrand}
+              onChange={(e) => setFilterBrand(e.target.value.toLowerCase())}
+              className="border px-3 py-2 rounded text-sm w-full md:w-60"
+            />
+            <input
+              type="text"
+              placeholder="Filter by Model"
+              value={filterModel}
+              onChange={(e) => setFilterModel(e.target.value.toLowerCase())}
+              className="border px-3 py-2 rounded text-sm w-full md:w-60"
+            />
+          </div>
+
+          {/* Tyre Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {tyres
+              .filter((tyre) =>
+                tyre.Brand?.toLowerCase().includes(filterBrand || '') &&
+                tyre.Model?.toLowerCase().includes(filterModel || '')
+              )
+              .map((tyre) => (
+                <div key={tyre._id} className="border rounded-lg p-4 bg-white shadow-md space-y-2">
+                  <img
+                    src={tyre.image_url}
+                    alt={`${tyre.Brand} ${tyre.Model}`}
+                    className="w-full h-32 object-contain mb-2"
+                  />
+                  <div className="text-sm">
+                    <p><strong>Brand:</strong> {tyre.Brand}</p>
+                    <p><strong>Model:</strong> {tyre.Model}</p>
+                    <p><strong>Size:</strong> {tyre.SIZE}</p>
+                    <p><strong>Load/Speed:</strong> {tyre["LOAD/SPEED RATING"]}</p>
+                    <p><strong>Type:</strong> {tyre.Type}</p>
+                    <p><strong>Marking:</strong> {tyre.Marking || 'N/A'}</p>
+                    <p><strong>RunFlat:</strong> {tyre.RunFlat || 'N/A'}</p>
+                    <p><strong>Price:</strong> ${tyre["Price Incl GST"]}</p>
+                    <p><strong>In Stock:</strong> {tyre["In Stock"]}</p>
+                    <p><strong>Unloading in 24 Hrs:</strong> {tyre["UNLOADING IN 24 HRS"]}</p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-2">
+                    {/* Delete */}
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => handleDelete(tyre._id)}
+                        className="text-red-600 hover:text-red-800 p-2"
+                        title="Delete Tyre"
+                      >
+                        <FaTrash size={16} />
+                      </button>
+                    </div>
+
+                    {/* Image Upload */}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) handleImageupdate(tyre._id, file);
+                      }}
+                      className="block w-full text-sm text-gray-700"
+                    />
+
+
+                    {/* Stock Update */}
+                    <div className="flex gap-1 items-center">
+                      <input
+                        type="text"
+                        placeholder="Stock"
+                        defaultValue={tyre["In Stock"]}
+                        onChange={(e) => {
+                          setstockValue(e.target.value.trim())
+                        }}
+                        className="w-16 border px-1 py-0.5 rounded text-xs"
+                      />
+                      <button
+                        onClick={() => {
+
+                          if (stockValue !== undefined && stockValue !== "" && stockValue !== tyre["In Stock"]) {
+                            handleStockupdate(tyre._id, stockValue);
+                          }
+                        }}
+                        className="bg-blue-500 text-white text-xs px-2 py-1 rounded hover:bg-blue-600"
+                      >
+                        Update
+                      </button>
+                    </div>
+
+
+                  </div>
+                </div>
+              ))}
+          </div>
+
+
+
+
         </div>
       )}
 
@@ -526,9 +608,9 @@ export default function AdminDashboard() {
             {serviceAreas.length > 0 ? (
               serviceAreas.map((area, idx) => (
                 <div key={idx} className="flex items-center justify-between border px-4 py-2 rounded shadow bg-white">
-                  <span>{area.postcode}</span>
+                  <span>{area.postcode}, {area.suburb}</span>
                   <button
-                    onClick={() => handleRemoveServiceArea(area.postcode)}
+                    onClick={() => handleRemoveServiceArea(area.postcode, area.suburb)}
                     className="text-red-500 text-sm"
                   >
                     Remove
@@ -547,11 +629,18 @@ export default function AdminDashboard() {
               onChange={(e) => setPincode(e.target.value)}
               className="border px-2 py-2 rounded w-full sm:w-auto text-sm"
             />
+            <input
+              type="text"
+              placeholder="Suburb"
+              value={suburb}
+              onChange={(e) => setSuburb(e.target.value)}
+              className="border px-2 py-2 rounded w-full sm:w-auto text-sm"
+            />
             <button
-              onClick={handleAddPincode}
+              onClick={handleAddServiceArea}
               className="bg-red-600 text-white px-3 py-2 rounded text-sm w-full sm:w-auto"
             >
-              Add Pincode
+              Add Service Area
             </button>
           </div>
         </div>
@@ -575,9 +664,9 @@ export default function AdminDashboard() {
                     key={booking._id}
                     className="border p-4 rounded shadow-sm bg-white flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start"
                   >
-                    {/* ✅ Left section: Tyre image + details */}
+                    {/*  Left section: Tyre image + details */}
                     <div className="flex flex-col sm:flex-row sm:gap-4 w-full sm:w-4/5">
-                      {/* ✅ Tyre Image */}
+                      {/*  Tyre Image */}
                       {tyre?.image && (
                         <img
                           src={tyre.image}
@@ -586,7 +675,7 @@ export default function AdminDashboard() {
                         />
                       )}
 
-                      {/* ✅ Booking Info */}
+                      {/*  Booking Info */}
                       <div className="text-sm space-y-1">
                         <p className="font-semibold text-base">
                           <span className="text-red-700">User:</span> {booking.phone || booking.user?.phone}
@@ -626,7 +715,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* ✅ Right section: Status dropdown & delete button */}
+                    {/*  Right section: Status dropdown & delete button */}
                     <div className="flex flex-col gap-2 sm:items-end sm:w-1/5">
                       <select
                         value={booking.status}

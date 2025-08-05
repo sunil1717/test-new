@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaSearch, FaShoppingBag, FaBars, FaTimes, FaCheckCircle } from 'react-icons/fa';
+import { FaSearch, FaShoppingBag, FaBars, FaTimes, FaCheckCircle, FaArrowRight, FaArrowLeft, } from 'react-icons/fa';
 import useAuthStore from '../store/authStore';
 import { useShopStore } from "../store/shopStore";
 import { useNavigate } from "react-router-dom";
@@ -27,10 +27,10 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
 
-  const [query, setQuery] = useState("");
+
   const [searched, setSearched] = useState(false);
   const checkServiceArea = useShopStore((state) => state.checkServiceArea);
-  const serviceable = useShopStore((state) => state.serviceable);
+  // const serviceable = useShopStore((state) => state.serviceable);
 
   const { fetchCart } = useShopStore();
   const user = useAuthStore((state) => state.user);
@@ -41,6 +41,14 @@ export default function Navbar() {
   const itemCount = (cart || []).reduce((acc, item) => acc + item.quantity, 0);
 
 
+
+
+  const [pincode, setPincode] = useState('');
+  const [suburb, setSuburb] = useState('');
+  const [serviceable, setServiceable] = useState(null);
+  const [step, setStep] = useState("pincode");
+
+
   useEffect(() => {
     fetchCart();
   }, []);
@@ -48,34 +56,26 @@ export default function Navbar() {
 
 
   const handleSearch = async () => {
-    if (!query.trim()) return;
+    if (!pincode.trim() || !suburb.trim()) return;
 
     setIconState("loading");
-
-    try {
-      await checkServiceArea(query);
-      setSearched(true);
-      setIconState("done");
-    } catch (err) {
-      console.error("Service area check failed:", err);
-      setIconState("search");
-    }
-
+    const isServiceable = await checkServiceArea(pincode.trim(), suburb.trim());
+    setServiceable(isServiceable);
+    setSearched(true);
+    setIconState("done");
 
     setTimeout(() => {
       setIconState("search");
-    }, 2000);
+    }, 1500);
   };
 
 
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setQuery(value);
 
-    if (value.trim() === "") {
-      setSearched(false);
-    }
-  };
+  useEffect(() => {
+    setSearched(false);
+    setServiceable(null);
+  }, [pincode, suburb]);
+
 
   return (
     <motion.nav
@@ -91,53 +91,142 @@ export default function Navbar() {
             <img src="/logoB.png" alt="Top Shelf" className="h-12 sm:h-19" />
           </div>
 
+
           {/* Middle: Search bar */}
-          <div className="w-full max-w-lg mx-auto">
-            <div className="flex items-center relative">
-              <input
-                type="text"
-                placeholder="Enter your pincode"
-                value={query}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                className="w-full rounded-full border border-gray-300 px-4 py-2 focus:outline-none"
-              />
-              <button
-                onClick={handleSearch}
-                className="absolute right-1 top-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 hover:cursor-pointer"
-              >
-                {iconState === "search" && <FaSearch size={16} />}
-                {iconState === "loading" && (
+          <div className="w-full max-w-sm mx-auto px-3">
+            <div className="flex flex-col sm:flex-row items-center gap-2">
+
+              {/* STEP 1: PINCODE INPUT */}
+              <AnimatePresence>
+                {step === "pincode" && (
                   <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    key="pincode"
+                    initial={{ opacity: 0, x: -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 30 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex w-full items-center gap-2"
                   >
-                    <FaSearch size={16} />
+                    <input
+                      type="text"
+                      placeholder="Enter your pincode"
+                      value={pincode}
+                      onChange={(e) => setPincode(e.target.value)}
+                      className="w-full rounded-full border border-gray-300 px-4 py-2 focus:outline-none text-sm"
+                    />
+                    <button
+                      onClick={() => pincode.trim() && setStep("suburb")}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded-full"
+                    >
+                      <FaArrowRight />
+                    </button>
                   </motion.div>
                 )}
-                {iconState === "done" && <FaCheckCircle size={16} />}
-              </button>
+              </AnimatePresence>
+
+              {/* STEP 2: SUBURB + SEARCH */}
+              <AnimatePresence>
+                {step === "suburb" && (
+                  <motion.div
+                    key="suburb"
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -30 }}
+                    transition={{ duration: 0.3 }}
+                    className="w-full"
+                  >
+                    <div className="flex w-full items-center gap-2">
+                      <button
+                        onClick={() => setStep("pincode")}
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded-full"
+                      >
+                        <FaArrowLeft />
+                      </button>
+
+                      <input
+                        type="text"
+                        placeholder="Enter your suburb "
+                        value={suburb}
+                        onChange={(e) => setSuburb(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                        className="w-full rounded-full border border-gray-300 px-4 py-2 focus:outline-none text-sm"
+                      />
+
+                      {/* Desktop Search Button */}
+                      <div className="hidden sm:block">
+                        <button
+                          onClick={handleSearch}
+                          disabled={!(pincode.trim() && suburb.trim())}
+                          className={`rounded-full p-2 text-white transition 
+                  ${pincode.trim() && suburb.trim()
+                              ? "bg-red-600 hover:bg-red-700 cursor-pointer"
+                              : "bg-gray-300 cursor-not-allowed"
+                            }`}
+                        >
+                          {iconState === "search" && <FaSearch size={16} />}
+                          {iconState === "loading" && (
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                            >
+                              <FaSearch size={16} />
+                            </motion.div>
+                          )}
+                          {iconState === "done" && <FaCheckCircle size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Mobile Search Button Below Input */}
+                    <div className="sm:hidden  mt-2 flex justify-center">
+                      <button
+                        onClick={handleSearch}
+                        disabled={!(pincode.trim() && suburb.trim())}
+                        className={`w-30 flex items-center justify-center rounded-full py-2 text-white font-medium transition 
+                ${pincode.trim() && suburb.trim()
+                            ? "bg-red-600 hover:bg-red-700 cursor-pointer"
+                            : "bg-gray-300 cursor-not-allowed"
+                          }`}
+                      >
+                        {iconState === "search" && <FaSearch  size={16} />}
+                        {iconState === "loading" && (
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                          >
+                            <FaSearch size={16} />
+                          </motion.div>
+                        )}
+                        {iconState === "done" && <FaCheckCircle size={16} />}
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {/* Animated Message */}
+            {/* DELIVERY MESSAGE */}
             <AnimatePresence>
-              {searched && query.trim() && (
+              {searched && (pincode.trim() || suburb.trim()) && (
                 <motion.p
                   key="message"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.3 }}
-                  className={`text-sm mt-2 ${serviceable ? "text-green-600" : "text-red-600"
+                  className={`text-sm mt-2 text-center ${serviceable ? "text-green-600" : "text-red-600"
                     }`}
                 >
                   {serviceable
-                    ? "Good news! We deliver to this pincode."
-                    : "Sorry, we currently do not serve this area."}
+                    ? "Good news! We deliver to this area."
+                    : "Sorry, we currently do not serve this location."}
                 </motion.p>
               )}
             </AnimatePresence>
           </div>
+
+
+
 
 
           {/* Right: Cart + Login + Mobile Toggle */}

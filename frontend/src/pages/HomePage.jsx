@@ -75,6 +75,15 @@ export default function HomePage() {
 
 
 
+  const parsedSizes = filterOptions.SIZE.map(sizeStr => {
+    const match = sizeStr.match(/^(\d{3})\/(\d{2})R(\d{2})$/);
+    return match ? { width: match[1], profile: match[2], rimSize: match[3] } : null;
+  }).filter(Boolean);
+
+  const uniqueWidths = [...new Set(parsedSizes.map(s => s.width))].sort();
+  const uniqueProfiles = [...new Set(parsedSizes.map(s => s.profile))].sort();
+  const uniqueRimSizes = [...new Set(parsedSizes.map(s => s.rimSize))].sort();
+
 
 
 
@@ -123,6 +132,7 @@ export default function HomePage() {
 
 
   const handleSizeSearch = async () => {
+    setCommonBrand(null);
     setSearching(true);
     const res = await searchBySize(sizeForm);
 
@@ -138,6 +148,9 @@ export default function HomePage() {
     const tyreKey = getTyreKey(tyre);
     const isInCart = cart.some(item => getTyreKey(item.tyre) === tyreKey);
     const isAdded = addedTyreKey === tyreKey;
+    const isOutofstock=Number(tyre["In Stock"]) === 0
+
+
 
     let width = '', profile = '', rimSize = '';
     if (tyre.SIZE && typeof tyre.SIZE === 'string') {
@@ -150,8 +163,22 @@ export default function HomePage() {
     return (
       <div
         key={tyreKey}
-        className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow duration-300"
+        className="  relative bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow duration-300"
       >
+
+        {isOutofstock && (
+          <div className="absolute top-2 right-2">
+            <div className="relative overflow-hidden rounded bg-red-600 text-white text-xs font-semibold px-2 py-1 shadow">
+              Out of Stock
+              <span className="shine" />
+            </div>
+          </div>
+        )}
+
+
+
+
+
         {tyre.image_url && (
           <img
             src={tyre.image_url}
@@ -196,15 +223,19 @@ export default function HomePage() {
                 setTimeout(() => setAddedTyreKey(null), 1000);
               }
             }}
-            disabled={isInCart || cart.length >= 5}
-            className={`mt-3 px-4 py-1 rounded text-sm text-white transition-all duration-300 ${isAdded || isInCart
+            disabled={isInCart || cart.length >= 5 || isOutofstock}
+            className={`mt-3 px-4 py-1 rounded text-sm text-white transition-all duration-300 ${isAdded || isInCart || isOutofstock
               ? 'bg-red-400 scale-105'
               : 'bg-red-600 hover:bg-red-700'
               }`}
           >
-            {isAdded || isInCart ? 'Added' : 'Add to Cart'}
+            {isAdded || isInCart ? 'Added' : isOutofstock ? "Out Of Stock " : 'Add to Cart'}
           </button>
         </div>
+
+
+
+
       </div>
     );
   };
@@ -397,27 +428,39 @@ export default function HomePage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-white/95 sm:mt-7 ">
-                    <input
-                      type="text"
-                      placeholder="Width"
+                    <select
                       value={sizeForm.width}
                       onChange={(e) => setSizeForm({ ...sizeForm, width: e.target.value })}
-                      className="border px-3 py-2  rounded w-full"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Profile"
+                      className="border px-3 py-2 rounded w-full  "
+                    >
+                      <option className='text-gray-700' value="">Select Width</option>
+                      {uniqueWidths.map(w => (
+                        <option className='text-gray-700' key={w} value={w}>{w}</option>
+                      ))}
+                    </select>
+
+                    <select
                       value={sizeForm.profile}
                       onChange={(e) => setSizeForm({ ...sizeForm, profile: e.target.value })}
                       className="border px-3 py-2 rounded w-full"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Rim Size"
+                    >
+                      <option className='text-gray-700' value="">Select Profile</option>
+                      {uniqueProfiles.map(p => (
+                        <option className='text-gray-700' key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+
+                    <select
                       value={sizeForm.rimSize}
                       onChange={(e) => setSizeForm({ ...sizeForm, rimSize: e.target.value })}
                       className="border px-3 py-2 rounded w-full"
-                    />
+                    >
+                      <option className='text-gray-700' value="">Select Rim Size</option>
+                      {uniqueRimSizes.map(r => (
+                        <option className='text-gray-700' key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+
                     <button
                       onClick={handleSizeSearch}
                       disabled={searching}
@@ -462,7 +505,7 @@ export default function HomePage() {
 
 
         {/* Recommended Products */}
-        {hasSearched && results.length > 0 && <RecommendedProducts  tyres={results} />}
+        {hasSearched && results.length > 0 && <RecommendedProducts tyres={results} />}
 
 
         {/*Filter section */}
